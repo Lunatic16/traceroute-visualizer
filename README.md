@@ -96,12 +96,12 @@ Navigate to `http://localhost:5000` in your browser and:
 
 ```
 traceroute/
-├── traceroute_server.py      # Flask web server
-├── traceroute_visualizer.py  # CLI traceroute tool
+├── traceroute_server.py       # Flask web server
+├── traceroute_visualizer.py   # CLI traceroute tool
 ├── traceroute_visualizer.html # Web UI (Binance design)
-├── run_server.sh             # Startup script
-├── CLAUDE.md                 # AI assistant context
-└── README.md                 # This file
+├── run_server.sh              # Startup script
+├── screenshot.png             # Screenshot of WebUI
+└── README.md                  # This file
 ```
 
 ### Component Overview
