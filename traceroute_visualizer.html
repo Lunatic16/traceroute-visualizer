@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Traceroute Visualizer</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+    :root {
+      /* Brand & Accent */
+      --colors-primary: #FCD535;
+      --colors-primary-active: #f0b90b;
+      --colors-primary-disabled: #3a3a1f;
+      --colors-accent-turquoise: #2dbdb6;
+
+      /* Surface - Dark (default) */
+      --colors-canvas-dark: #0b0e11;
+      --colors-surface-card-dark: #1e2329;
+      --colors-surface-elevated-dark: #2b3139;
+
+      /* Surface - Light */
+      --colors-canvas-light: #ffffff;
+      --colors-surface-soft-light: #fafafa;
+      --colors-surface-strong-light: #f5f5f5;
+
+      /* Hairlines */
+      --colors-hairline-on-light: #eaecef;
+      --colors-hairline-on-dark: #2b3139;
+      --colors-border-strong: #cdd1d6;
+
+      /* Text */
+      --colors-ink: #181a20;
+      --colors-body: #eaecef;
+      --colors-body-on-light: #181a20;
+      --colors-muted: #707a8a;
+      --colors-muted-strong: #929aa5;
+      --colors-on-primary: #181a20;
+      --colors-on-dark: #ffffff;
+
+      /* Trading Semantics */
+      --colors-trading-up: #0ecb81;
+      --colors-trading-down: #f6465d;
+      --colors-info: #3b82f6;
+
+      /* Typography */
+      --font-display: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'IBM Plex Mono', monospace;
+
+      /* Spacing */
+      --spacing-xs: 8px;
+      --spacing-sm: 12px;
+      --spacing-md: 16px;
+      --spacing-lg: 24px;
+      --spacing-xl: 32px;
+      --spacing-xlxl: 48px;
+      --spacing-section: 80px;
+
+      /* Border Radius */
+      --rounded-sm: 4px;
+      --rounded-md: 6px;
+      --rounded-lg: 8px;
+      --rounded-xl: 12px;
+      --rounded-pill: 9999px;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--colors-canvas-dark);
+      color: var(--colors-body);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: var(--spacing-section) var(--spacing-lg);
+    }
+
+    /* Header */
+    header {
+      margin-bottom: var(--spacing-xlxl);
+    }
+
+    h1 {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 5vw, 4rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--colors-primary);
+      margin-bottom: var(--spacing-sm);
+      text-transform: uppercase;
+    }
+
+    .subtitle {
+      font-family: var(--font-body);
+      font-size: 1rem;
+      color: var(--colors-muted);
+      font-weight: 400;
+    }
+
+    /* Input Section */
+    .input-section {
+      display: flex;
+      gap: var(--spacing-md);
+      margin-bottom: var(--spacing-xlxl);
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+
+    .input-group {
+      flex: 1;
+      min-width: 280px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--colors-muted-strong);
+      margin-bottom: var(--spacing-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 10px var(--spacing-md);
+      background: var(--colors-surface-card-dark);
+      border: 1px solid var(--colors-hairline-on-dark);
+      border-radius: var(--rounded-md);
+      font-family: var(--font-mono);
+      font-size: 0.875rem;
+      color: var(--colors-body);
+      transition: border-color 0.2s;
+    }
+
+    input[type="text"]:focus {
+      outline: none;
+      border-color: var(--colors-info);
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+    }
+
+    input[type="text"]::placeholder {
+      color: var(--colors-muted);
+    }
+
+    /* Buttons */
+    button {
+      padding: 10px var(--spacing-lg);
+      height: 40px;
+      font-family: var(--font-body);
+      font-size: 0.875rem;
+      font-weight: 600;
+      border-radius: var(--rounded-md);
+      cursor: pointer;
+      transition: all 0.2s;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    #runBtn {
+      background: var(--colors-primary);
+      color: var(--colors-on-primary);
+      border: none;
+    }
+
+    #runBtn:hover:not(:disabled) {
+      background: var(--colors-primary-active);
+    }
+
+    #runBtn:disabled {
+      background: var(--colors-primary-disabled);
+      cursor: not-allowed;
+    }
+
+    #demoBtn {
+      background: var(--colors-surface-card-dark);
+      color: var(--colors-body);
+      border: 1px solid var(--colors-hairline-on-dark);
+    }
+
+    #demoBtn:hover:not(:disabled) {
+      background: var(--colors-surface-elevated-dark);
+      border-color: var(--colors-muted-strong);
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: var(--spacing-md);
+      margin-bottom: var(--spacing-xlxl);
+    }
+
+    .stat-card {
+      background: var(--colors-surface-card-dark);
+      border: 1px solid var(--colors-hairline-on-dark);
+      border-radius: var(--rounded-xl);
+      padding: var(--spacing-lg) var(--spacing-xl);
+      text-align: center;
+    }
+
+    .stat-value {
+      font-family: var(--font-mono);
+      font-size: 2rem;
+      font-weight: 600;
+      color: var(--colors-primary);
+      margin-bottom: var(--spacing-xs);
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--colors-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Visualization Grid */
+    .visualization-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+      gap: var(--spacing-lg);
+      margin-bottom: var(--spacing-xlxl);
+    }
+
+    .card {
+      background: var(--colors-surface-card-dark);
+      border: 1px solid var(--colors-hairline-on-dark);
+      border-radius: var(--rounded-xl);
+      padding: var(--spacing-xl);
+    }
+
+    .card h2 {
+      font-family: var(--font-display);
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: var(--colors-on-dark);
+      margin-bottom: var(--spacing-lg);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--font-mono);
+      font-size: 0.8125rem;
+    }
+
+    th {
+      background: transparent;
+      color: var(--colors-muted);
+      padding: var(--spacing-sm) var(--spacing-md);
+      text-align: left;
+      font-size: 0.75rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--colors-hairline-on-dark);
+    }
+
+    td {
+      padding: var(--spacing-sm) var(--spacing-md);
+      border-bottom: 1px solid var(--colors-hairline-on-dark);
+      color: var(--colors.body);
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: var(--colors-surface-elevated-dark);
+    }
+
+    .hop-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      background: var(--colors-primary);
+      color: var(--colors-on-primary);
+      border-radius: var(--rounded-pill);
+      font-weight: 600;
+      font-size: 0.75rem;
+    }
+
+    .latency-bar {
+      height: 6px;
+      background: var(--colors-surface-elevated-dark);
+      border-radius: var(--rounded-pill);
+      overflow: hidden;
+    }
+
+    .latency-fill {
+      height: 100%;
+      background: var(--colors-primary);
+      border-radius: var(--rounded-pill);
+      transition: width 0.3s;
+    }
+
+    /* Network Path */
+    .network-path {
+      display: flex;
+      align-items: center;
+      overflow-x: auto;
+      padding: var(--spacing-lg);
+      min-height: 160px;
+    }
+
+    .node {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .node-circle {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: var(--colors-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--colors-on-primary);
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 1.125rem;
+    }
+
+    .node-label {
+      margin-top: var(--spacing-sm);
+      text-align: center;
+      max-width: 120px;
+    }
+
+    .node-ip {
+      font-size: 0.6875rem;
+      color: var(--colors-muted-strong);
+      margin-bottom: 2px;
+      word-break: break-all;
+    }
+
+    .node-time {
+      font-size: 0.625rem;
+      color: var(--colors-trading-up);
+      font-weight: 500;
+    }
+
+    .connection {
+      flex: 1;
+      height: 2px;
+      background: var(--colors-surface-elevated-dark);
+      margin: 0 var(--spacing-md);
+      min-width: 40px;
+      position: relative;
+    }
+
+    .connection::after {
+      content: '';
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 6px;
+      height: 6px;
+      border-right: 2px solid var(--colors-muted-strong);
+      border-top: 2px solid var(--colors-muted-strong);
+      transform: translateY(-50%) rotate(45deg);
+    }
+
+    /* Chart */
+    .chart-container {
+      position: relative;
+      height: 280px;
+    }
+
+    /* Loading */
+    .loading {
+      text-align: center;
+      padding: var(--spacing-xlxl) var(--spacing-lg);
+    }
+
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 2px solid var(--colors-hairline-on-dark);
+      border-top-color: var(--colors-primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto var(--spacing-lg);
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      font-family: var(--font-mono);
+      font-size: 0.875rem;
+      color: var(--colors-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Error */
+    .error {
+      background: var(--colors-surface-card-dark);
+      border: 1px solid var(--colors-hairline-on-dark);
+      border-left: 3px solid var(--colors-trading-down);
+      color: var(--colors.body);
+      padding: var(--spacing-lg) var(--spacing-xl);
+      border-radius: var(--rounded-xl);
+      font-family: var(--font-mono);
+      font-size: 0.8125rem;
+      white-space: pre-line;
+      margin: var(--spacing-lg) 0;
+    }
+
+    /* CTA Band */
+    .cta-band {
+      background: var(--colors-surface-card-dark);
+      border-radius: var(--rounded-xl);
+      padding: var(--spacing-xlxl);
+      text-align: center;
+      margin-top: var(--spacing-xlxl);
+    }
+
+    .cta-band h3 {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--colors-on-dark);
+      margin-bottom: var(--spacing-sm);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .cta-band p {
+      color: var(--colors-muted);
+      font-size: 0.9375rem;
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .cta-band button {
+      background: var(--colors-primary);
+      color: var(--colors-on-primary);
+      border: none;
+      font-weight: 600;
+    }
+
+    .cta-band button:hover {
+      background: var(--colors-primary-active);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .container {
+        padding: var(--spacing-lg);
+      }
+
+      .input-section {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .input-group {
+        min-width: 100%;
+      }
+
+      .visualization-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .network-path {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .connection {
+        width: 2px;
+        height: 24px;
+        min-height: 24px;
+        min-width: 0;
+        margin: var(--spacing-sm) 0;
+      }
+
+      .connection::after {
+        bottom: 0;
+        right: 50%;
+        top: auto;
+        transform: translateX(50%) rotate(135deg);
+      }
+    }
+
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Traceroute Visualizer</h1>
+      <p class="subtitle">Analyze network paths and latency in real-time</p>
+    </header>
+
+    <div class="input-section">
+      <div class="input-group">
+        <label for="targetInput">Target</label>
+        <input type="text" id="targetInput" placeholder="e.g., google.com or 8.8.8.8" value="google.com">
+      </div>
+      <button onclick="runTraceroute()" id="runBtn">Run Traceroute</button>
+      <button onclick="loadDemo()" id="demoBtn">Load Demo</button>
+    </div>
+
+    <div id="results" class="hidden">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value" id="totalHops">0</div>
+          <div class="stat-label">Total Hops</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="avgLatency">0</div>
+          <div class="stat-label">Avg (ms)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="maxLatency">0</div>
+          <div class="stat-label">Max (ms)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="minLatency">0</div>
+          <div class="stat-label">Min (ms)</div>
+        </div>
+      </div>
+
+      <div class="visualization-grid">
+        <div class="card">
+          <h2>Latency by Hop</h2>
+          <div class="chart-container">
+            <canvas id="latencyChart"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Network Path</h2>
+          <div class="network-path" id="networkPath"></div>
+        </div>
+        <div class="card" style="grid-column: 1 / -1;">
+          <h2>Detailed Results</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Hop</th>
+                <th>IP Address</th>
+                <th>Avg (ms)</th>
+                <th>Min (ms)</th>
+                <th>Max (ms)</th>
+                <th>Latency</th>
+              </tr>
+            </thead>
+            <tbody id="resultsBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="cta-band">
+        <h3>Ready to go deeper?</h3>
+        <p>Export your traceroute data or run additional diagnostics.</p>
+        <button onclick="loadDemo()">Run Another Traceroute</button>
+      </div>
+    </div>
+
+    <div id="loading" class="loading hidden">
+      <div class="spinner"></div>
+      <p class="loading-text">Running traceroute...</p>
+    </div>
+
+    <div id="error" class="error hidden"></div>
+  </div>
+
+  <script>
+    let latencyChart = null;
+
+    const demoData = [
+      { hop: 1, ip: '192.168.1.1', times: [1.2, 1.1, 1.3], avg_time: 1.2 },
+      { hop: 2, ip: '10.0.0.1', times: [5.4, 5.2, 5.6], avg_time: 5.4 },
+      { hop: 3, ip: '172.16.0.1', times: [12.3, 11.9, 12.5], avg_time: 12.2 },
+      { hop: 4, ip: '203.0.113.1', times: [25.7, 26.1, 25.4], avg_time: 25.7 },
+      { hop: 5, ip: '198.51.100.1', times: [45.2, 44.8, 45.6], avg_time: 45.2 },
+      { hop: 6, ip: '93.184.216.34', times: [52.3, 51.9, 52.7], avg_time: 52.3 }
+    ];
+
+    function showError(message) {
+      document.getElementById('error').textContent = message;
+      document.getElementById('error').classList.remove('hidden');
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('results').classList.add('hidden');
+    }
+
+    function hideError() {
+      document.getElementById('error').classList.add('hidden');
+    }
+
+    async function runTraceroute() {
+      const target = document.getElementById('targetInput').value.trim();
+      if (!target) {
+        showError('Please enter a target hostname or IP address');
+        return;
+      }
+
+      hideError();
+      document.getElementById('loading').classList.remove('hidden');
+      document.getElementById('results').classList.add('hidden');
+      document.getElementById('runBtn').disabled = true;
+
+      try {
+        const healthResponse = await fetch(`/api/health`);
+        if (!healthResponse.ok) {
+          throw new Error('Server health check failed');
+        }
+
+        const response = await fetch(`/api/traceroute?target=${encodeURIComponent(target)}`);
+        const data = await response.json();
+
+        if (data.error) {
+          showError(data.error);
+        } else {
+          displayResults(data.hops, target);
+        }
+      } catch (error) {
+        showError(
+          'Server not available.\n\n' +
+          '1. Click "Load Demo" for sample data, OR\n\n' +
+          '2. Start the server:\n' +
+          '   cd /home/god/Downloads/traceroute\n' +
+          '   python3 traceroute_server.py\n\n' +
+          'Error: ' + error.message
+        );
+      } finally {
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('runBtn').disabled = false;
+      }
+    }
+
+    function loadDemo() {
+      hideError();
+      displayResults(demoData, 'demo.example.com');
+    }
+
+    function displayResults(hops, target) {
+      document.getElementById('results').classList.remove('hidden');
+
+      const avgTimes = hops.map(h => h.avg_time).filter(t => t !== null);
+      const totalHops = hops.length;
+      const avgLatency = avgTimes.length ? avgTimes.reduce((a, b) => a + b, 0) / avgTimes.length : 0;
+      const maxLatency = avgTimes.length ? Math.max(...avgTimes) : 0;
+      const minLatency = avgTimes.length ? Math.min(...avgTimes) : 0;
+
+      document.getElementById('totalHops').textContent = totalHops;
+      document.getElementById('avgLatency').textContent = avgLatency.toFixed(1);
+      document.getElementById('maxLatency').textContent = maxLatency.toFixed(1);
+      document.getElementById('minLatency').textContent = minLatency.toFixed(1);
+
+      const tbody = document.getElementById('resultsBody');
+      tbody.innerHTML = '';
+
+      hops.forEach(hop => {
+        const times = hop.times || [];
+        const minTime = times.length ? Math.min(...times) : 0;
+        const hopMaxTime = times.length ? Math.max(...times) : 0;
+        const percentage = maxLatency > 0 ? (hop.avg_time / maxLatency) * 100 : 0;
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td><span class="hop-badge">${hop.hop}</span></td>
+          <td>${hop.ip || '*'}</td>
+          <td>${hop.avg_time ? hop.avg_time.toFixed(1) : 'N/A'}</td>
+          <td>${minTime.toFixed(1)}</td>
+          <td>${hopMaxTime.toFixed(1)}</td>
+          <td>
+            <div class="latency-bar">
+              <div class="latency-fill" style="width: ${percentage}%"></div>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+
+      const pathDiv = document.getElementById('networkPath');
+      pathDiv.innerHTML = '';
+
+      hops.forEach((hop, index) => {
+        if (index > 0) {
+          const conn = document.createElement('div');
+          conn.className = 'connection';
+          pathDiv.appendChild(conn);
+        }
+
+        const node = document.createElement('div');
+        node.className = 'node';
+        node.innerHTML = `
+          <div class="node-circle">${hop.hop}</div>
+          <div class="node-label">
+            <div class="node-ip">${hop.ip || '*'}</div>
+            <div class="node-time">${hop.avg_time ? hop.avg_time.toFixed(1) + 'ms' : ''}</div>
+          </div>
+        `;
+        pathDiv.appendChild(node);
+      });
+
+      updateChart(hops);
+    }
+
+    function updateChart(hops) {
+      const ctx = document.getElementById('latencyChart').getContext('2d');
+      const labels = hops.map(h => `Hop ${h.hop}`);
+      const data = hops.map(h => h.avg_time || 0);
+
+      if (latencyChart) {
+        latencyChart.destroy();
+      }
+
+      latencyChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Latency (ms)',
+            data: data,
+            backgroundColor: data.map(d => {
+              const max = Math.max(...data);
+              const ratio = d / max;
+              if (ratio > 0.7) return 'rgba(252, 213, 53, 0.8)';
+              if (ratio > 0.4) return 'rgba(45, 189, 182, 0.8)';
+              return 'rgba(232, 165, 90, 0.8)';
+            }),
+            borderColor: data.map(d => {
+              const max = Math.max(...data);
+              const ratio = d / max;
+              if (ratio > 0.7) return 'rgba(252, 213, 53, 1)';
+              if (ratio > 0.4) return 'rgba(45, 189, 182, 1)';
+              return 'rgba(232, 165, 90, 1)';
+            }),
+            borderWidth: 1,
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: 'rgba(30, 35, 41, 0.95)',
+              titleColor: '#FCD535',
+              bodyColor: '#eaecef',
+              titleFont: { family: 'Inter', size: 13, weight: 600 },
+              bodyFont: { family: 'IBM Plex Mono', size: 12 },
+              padding: 12,
+              borderRadius: 8,
+              callbacks: {
+                label: function(context) {
+                  return context.parsed.y.toFixed(2) + ' ms';
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: { color: '#2b3139' },
+              ticks: {
+                color: '#707a8a',
+                font: { family: 'IBM Plex Mono', size: 11 }
+              }
+            },
+            x: {
+              grid: { display: false },
+              ticks: {
+                color: '#707a8a',
+                font: { family: 'IBM Plex Mono', size: 11 }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    window.onload = () => {
+      loadDemo();
+    };
+  </script>
+</body>
+</html>
